@@ -1,113 +1,145 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Mail, Shield, Send, Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Mail,
+  Shield,
+  Send,
+  Loader2,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  LinkIcon,
+  Undo,
+  Redo,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TipTapLink from "@tiptap/extension-link";
 
 interface EmailFormProps {
-  walletAddress: string
+  walletAddress: string;
 }
 
 export function EmailForm({ walletAddress }: EmailFormProps) {
-  const [email, setEmail] = useState("")
-  const [subject, setSubject] = useState("")
-  const [message, setMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const { toast } = useToast()
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
 
-  const verifyEmail = async () => {
-    setIsVerifying(true)
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      TipTapLink.configure({
+        openOnClick: false,
+      }),
+    ],
+    content: "",
+  });
 
-    try {
-      // Mock vlayer email verification
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // In a real implementation, this would:
-      // 1. Use vlayer to verify email ownership
-      // 2. Generate cryptographic proof
-      // 3. Sign message with wallet
-
-      toast({
-        title: "Email verified",
-        description: "Email ownership verified using vlayer",
-      })
-
-      return true
-    } catch (error) {
-      toast({
-        title: "Verification failed",
-        description: "Failed to verify email ownership",
-        variant: "destructive",
-      })
-      return false
-    } finally {
-      setIsVerifying(false)
-    }
-  }
+  const generateVerificationLink = (emailId: string) => {
+    // Generate a unique verification ID
+    const verificationId = `${emailId}_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+    return `${window.location.origin}/verify/open/${verificationId}`;
+  };
 
   const sendEmail = async () => {
-    if (!email || !subject || !message) {
+    if (!email || !subject || (editor && editor.isEmpty)) {
       toast({
         title: "Missing fields",
         description: "Please fill in all required fields",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSending(true)
+    setIsSending(true);
 
     try {
       // Mock email sending with blockchain proof
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Get the HTML content from the editor
+      const messageContent = editor?.getHTML() || "";
+
+      const emailId = Date.now().toString();
+      const verificationLink = generateVerificationLink(emailId);
 
       // In a real implementation, this would:
-      // 1. Send email via traditional email service
+      // 1. Send email via traditional email service with embedded verification link
       // 2. Store proof hash on blockchain
       // 3. Create delivery tracking record
 
       const emailData = {
-        id: Date.now().toString(),
+        id: emailId,
         to: email,
         subject,
-        message,
+        message: messageContent,
         from: walletAddress,
         timestamp: new Date().toISOString(),
         status: "sent",
         txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-      }
+        verificationLink,
+      };
+
+      // await fetch("/api/emails", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(emailData),
+      // });
 
       // Store in localStorage for demo purposes
-      const existingEmails = JSON.parse(localStorage.getItem("sentEmails") || "[]")
-      existingEmails.push(emailData)
-      localStorage.setItem("sentEmails", JSON.stringify(existingEmails))
+      const existingEmails = JSON.parse(
+        localStorage.getItem("sentEmails") || "[]"
+      );
+      existingEmails.push(emailData);
+      localStorage.setItem("sentEmails", JSON.stringify(existingEmails));
 
       toast({
         title: "Email sent successfully",
-        description: "Email sent and proof stored on-chain",
-      })
+        description: "Email sent with verification tracking enabled",
+      });
+
+      // Show verification link for demo purposes
+      toast({
+        title: "Demo: Verification Link Generated",
+        description: `Click to simulate email open: ${verificationLink}`,
+        duration: 10000,
+      });
 
       // Reset form
-      setEmail("")
-      setSubject("")
-      setMessage("")
+      setEmail("");
+      setSubject("");
+      editor?.commands.clearContent();
     } catch (error) {
       toast({
         title: "Failed to send email",
         description: "An error occurred while sending the email",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSending(false)
+      setIsSending(false);
     }
-  }
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -118,7 +150,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
             <Mail className="h-5 w-5" />
             Compose Email
           </CardTitle>
-          <CardDescription>Send a verified email with on-chain proof of delivery</CardDescription>
+          <CardDescription>
+            Send a verified email with on-chain proof of delivery
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -144,32 +178,86 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="message">Message</Label>
-            <Textarea
-              id="message"
-              placeholder="Your message..."
-              rows={6}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
+            <div className="border rounded-md">
+              <div className="flex items-center gap-1 p-1 border-b bg-slate-50">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => editor?.chain().focus().toggleBold().run()}
+                  disabled={!editor?.can().chain().focus().toggleBold().run()}
+                  data-active={editor?.isActive("bold")}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => editor?.chain().focus().toggleItalic().run()}
+                  disabled={!editor?.can().chain().focus().toggleItalic().run()}
+                  data-active={editor?.isActive("italic")}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() =>
+                    editor?.chain().focus().toggleUnderline().run()
+                  }
+                  disabled={
+                    !editor?.can().chain().focus().toggleUnderline().run()
+                  }
+                  data-active={editor?.isActive("underline")}
+                >
+                  <span className="underline text-xs font-bold">U</span>
+                </Button>
+                <span className="w-px h-4 bg-slate-300 mx-1"></span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => editor?.chain().focus().undo().run()}
+                  disabled={!editor?.can().chain().focus().undo().run()}
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => editor?.chain().focus().redo().run()}
+                  disabled={!editor?.can().chain().focus().redo().run()}
+                >
+                  <Redo className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-3 min-h-[200px] prose prose-sm max-w-none">
+                <EditorContent editor={editor} />
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-2">
             <Button
-              onClick={verifyEmail}
-              disabled={!email || isVerifying}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-              Verify Email
-            </Button>
-
-            <Button
               onClick={sendEmail}
-              disabled={!email || !subject || !message || isSending}
+              disabled={
+                !email || !subject || (editor && editor.isEmpty) || isSending
+              }
               className="flex items-center gap-2 flex-1"
             >
-              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
               Send Email
             </Button>
           </div>
@@ -183,7 +271,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
             <Shield className="h-5 w-5" />
             vlayer Integration
           </CardTitle>
-          <CardDescription>How email verification works with vlayer</CardDescription>
+          <CardDescription>
+            How email verification works with vlayer
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
@@ -193,7 +283,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               </Badge>
               <div>
                 <p className="font-medium">Email Verification</p>
-                <p className="text-sm text-slate-600">vlayer verifies email ownership through cryptographic proof</p>
+                <p className="text-sm text-slate-600">
+                  vlayer verifies email ownership through cryptographic proof
+                </p>
               </div>
             </div>
 
@@ -203,7 +295,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               </Badge>
               <div>
                 <p className="font-medium">Message Signing</p>
-                <p className="text-sm text-slate-600">Your wallet signs the email content for authenticity</p>
+                <p className="text-sm text-slate-600">
+                  Your wallet signs the email content for authenticity
+                </p>
               </div>
             </div>
 
@@ -213,7 +307,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               </Badge>
               <div>
                 <p className="font-medium">On-chain Storage</p>
-                <p className="text-sm text-slate-600">Email hash and proof are stored on the blockchain</p>
+                <p className="text-sm text-slate-600">
+                  Email hash and proof are stored on the blockchain
+                </p>
               </div>
             </div>
 
@@ -222,20 +318,31 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 4
               </Badge>
               <div>
-                <p className="font-medium">Delivery Tracking</p>
-                <p className="text-sm text-slate-600">Track email status and verify delivery authenticity</p>
+                <p className="font-medium">Open Tracking</p>
+                <p className="text-sm text-slate-600">
+                  One-time verification links track email opens securely
+                </p>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t">
             <p className="text-xs text-slate-500">
-              This is a hackathon prototype. In production, vlayer would handle the actual email verification and proof
-              generation.
+              This is a hackathon prototype. In production, vlayer would handle
+              the actual email verification and proof generation.
             </p>
           </div>
         </CardContent>
       </Card>
+      <style jsx global>{`
+        .ProseMirror {
+          outline: none;
+          min-height: 150px;
+        }
+        [data-active="true"] {
+          background-color: #e2e8f0;
+        }
+      `}</style>
     </div>
-  )
+  );
 }
