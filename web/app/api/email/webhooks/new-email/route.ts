@@ -108,16 +108,14 @@ export async function GET(request: Request) {
   const challenge = searchParams.get('challenge')
 
   if (!challenge) {
-    return NextResponse.json({ message: 'No challenge provided' }, { status: 400 })
+    return new NextResponse('No challenge provided', { status: 400 })
   }
 
-  return new NextResponse(
-    JSON.stringify({ challenge }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  )
+  return new NextResponse(challenge, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain',
+      'Content-Length': String(challenge.length),
+    },
+  })
 }
