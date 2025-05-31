@@ -2,6 +2,10 @@
 src = "src"
 out = "out"
 libs = ["lib", "dependencies"]
+
+[[profile.default.fs_permissions]]
+access = "read"
+path = "./testdata"
 fs_permissions = [{ access = "read", path = "./testdata"}]
 
 [dependencies]
