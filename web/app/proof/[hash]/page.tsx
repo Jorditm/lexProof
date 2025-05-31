@@ -83,30 +83,6 @@ export default function ProofPage() {
     },
   });
 
-  // useEffect(() => {
-  //   const fetchProof = async () => {
-  //     setLoading(true);
-  //     setError(null);
-
-  //     try {
-  //       // Simulate API call delay
-  //       await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  //       // In a real implementation, this would fetch from your backend/blockchain
-  //       // For demo purposes, we'll check localStorage and generate mock data
-
-  //       }
-  //     } catch (err) {
-  //       setError("Failed to fetch email proof");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   if (hash) {
-  //     fetchProof();
-  //   }
-  // }, [hash]);
 
   const maskEmail = (email: string) => {
     const [username, domain] = email.split("@");

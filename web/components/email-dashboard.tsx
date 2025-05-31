@@ -48,37 +48,63 @@ export function EmailDashboard() {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const account = useAccount();
+  const {address} = useAccount();
 
   const {
     data: emails,
-    refetch: refetchNfts,
-    isFetching: isFetchingNfts,
+    refetch: refetchEmails,
+    isFetching: isFetchingEmails,
   } = useQuery({
-    queryKey: ["emailNfts", account.address],
+    queryKey: ["combinedEmails", address],
     queryFn: async () => {
-      if (!account.address) return [];
-      const res = await fetch(
-        `https://eth-sepolia.blockscout.com/api/v2/addresses/0xfaB71618C291D0363B5c6A4a5784cB829Deb4A38/nft?type=ERC-721`
-      );
-      if (!res.ok) throw new Error("Failed to fetch NFTs");
-      const data = await res.json();
-      // Filtra solo los NFTs con el token.address deseado
-      const filtered = Array.isArray(data.items)
-        ? data.items.filter(
+      if (!address) return [];
+      // Llama a ambos endpoints en paralelo
+      const [nftsRes, emailsRes] = await Promise.all([
+        fetch(
+          `https://eth-sepolia.blockscout.com/api/v2/addresses/${address}/nft?type=ERC-721`
+        ),
+        fetch("/api/content/get-emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender: `${address}`,
+          }),
+        }),
+      ]);
+      if (!nftsRes.ok) throw new Error("Failed to fetch NFTs");
+      if (!emailsRes.ok) throw new Error("Failed to fetch emails from API");
+      const nftsData = await nftsRes.json();
+      const emailsData = await emailsRes.json();
+      const filteredNfts = Array.isArray(nftsData.items)
+        ? nftsData.items.filter(
             (nft: any) =>
               nft.token?.address?.toLowerCase() ===
               "0x430ec731a6e53a7e015e9b1d01a5cea7232b19ae"
           )
         : [];
-      return filtered;
+
+      // Mapea los datos de emailsData a un formato unificado
+      return emailsData.map((email: any) => {
+        const nft = filteredNfts.find((nft: any) => nft.id === email.id);
+        return {
+          id: email.id,
+          to: email.recipient,
+          subject: email.subject,
+          message: email.content,
+          from: email.sender,
+          timestamp: nft?.mint?.timestamp || new Date().toISOString(),
+          status: nft?.status || "sent",
+          txHash: nft?.mint?.transaction_hash || "",
+        } as Email;
+      });
     },
-    enabled: Boolean(account.address),
+
+    enabled: Boolean(address),
     staleTime: 0,
   });
-  console.log("emails", emails);
+
   const userContract = {
-    address: account.address,
+    address: address,
     abi: [],
   } as const;
 
@@ -156,15 +182,15 @@ export function EmailDashboard() {
               variant="outline"
               size="sm"
               className="ml-auto mt-2"
-              onClick={() => refetchNfts()}
-              disabled={isFetchingNfts}
+              onClick={() => refetchEmails()}
+              disabled={isFetchingEmails}
             >
-              {isFetchingNfts ? "Refreshing..." : "Refresh"}
+              {isFetchingEmails ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {isFetchingNfts ? (
+          {isFetchingEmails ? (
             <div className="space-y-4">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4">
