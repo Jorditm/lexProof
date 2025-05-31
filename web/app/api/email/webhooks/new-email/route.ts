@@ -112,7 +112,7 @@ export async function GET(request: Request) {
   }
 
   return new NextResponse(
-    JSON.stringify(challenge),
+    JSON.stringify({ challenge }),
     {
       status: 200,
       headers: {
