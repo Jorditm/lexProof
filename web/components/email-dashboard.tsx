@@ -27,7 +27,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+
 import { toast } from "sonner";
+
+import { useAccount, useReadContracts } from "wagmi";
+import { getEmailNfts } from "@/lib/alchemy";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "./ui/skeleton";
 
 interface Email {
   id: string;
@@ -41,28 +48,43 @@ interface Email {
 }
 
 export function EmailDashboard() {
-  const [emails, setEmails] = useState<Email[]>([]);
+  const queryClient = useQueryClient();
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  useEffect(() => {
-    // Load emails from localStorage
-    const savedEmails = JSON.parse(localStorage.getItem("sentEmails") || "[]");
+  const account = useAccount();
 
-    // Simulate status updates for demo
-    const updatedEmails = savedEmails.map((email: Email) => {
-      const timeDiff = Date.now() - new Date(email.timestamp).getTime();
-      const minutes = timeDiff / (1000 * 60);
+  const {
+    data: emails,
+    refetch: refetchNfts,
+    isFetching: isFetchingNfts,
+  } = useQuery({
+    queryKey: ["emailNfts", account.address],
+    queryFn: async () => {
+      const res = await fetch(
+        `https://eth.blockscout.com/api/v2/addresses/${account.address}/nft?type=ERC-721`
+      );
+      if (!res.ok) throw new Error("Failed to fetch NFTs");
+      const data = await res.json();
+      // Asegura que siempre retornas un array
+      return Array.isArray(data.tokens) ? data.tokens : [];
+    },
+    enabled: Boolean(account.address),
+    staleTime: 0,
+  });
+  const userContract = {
+    address: account.address,
+    abi: [],
+  } as const;
 
-      if (minutes > 5) return { ...email, status: "verified" };
-      if (minutes > 3) return { ...email, status: "opened" };
-      if (minutes > 1) return { ...email, status: "delivered" };
-      return email;
-    });
-
-    setEmails(updatedEmails);
-  }, []);
-
+  const result = useReadContracts({
+    contracts: [
+      {
+        ...userContract,
+        functionName: "",
+      },
+    ],
+  });
   const getStatusBadge = (status: string) => {
     const variants = {
       sent: { variant: "secondary" as const, label: "Sent" },
@@ -96,14 +118,6 @@ export function EmailDashboard() {
     toast("Transaction hash copied");
   };
 
-  const deleteEmail = (id: string) => {
-    const updatedEmails = emails.filter((email) => email.id !== id);
-    setEmails(updatedEmails);
-    localStorage.setItem("sentEmails", JSON.stringify(updatedEmails));
-
-    toast("Email deleted");
-  };
-
   const previewEmail = (email: Email) => {
     setSelectedEmail(email);
     setPreviewOpen(true);
@@ -114,7 +128,7 @@ export function EmailDashboard() {
   };
 
   const truncateText = (text: string, maxLength: number) => {
-    return text.length > maxLength
+    return text?.length > maxLength
       ? text.substring(0, maxLength) + "..."
       : text;
   };
@@ -123,16 +137,42 @@ export function EmailDashboard() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Email Dashboard
-          </CardTitle>
-          <CardDescription>
-            Track your sent emails and their verification status
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Dashboard
+              </CardTitle>
+              <CardDescription>
+                Track your sent emails and their verification status
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto mt-2"
+              onClick={() => refetchNfts()}
+              disabled={isFetchingNfts}
+            >
+              {isFetchingNfts ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {emails.length === 0 ? (
+          {isFetchingNfts ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              ))}
+            </div>
+          ) : emails?.length === 0 ? (
             <div className="text-center py-8">
               <Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <p className="text-slate-600">No emails sent yet</p>
@@ -144,10 +184,10 @@ export function EmailDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-slate-600">
-                  {emails.length} email{emails.length !== 1 ? "s" : ""} sent
+                  {emails?.length} email
+                  {emails?.length !== 1 ? "s" : ""} sent
                 </p>
               </div>
-
               <div className="border rounded-lg">
                 <Table>
                   <TableHeader>
@@ -161,25 +201,29 @@ export function EmailDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {emails.map((email) => (
-                      <TableRow key={email.id}>
+                    {emails?.map((email: any) => (
+                      <TableRow key={email?.id}>
                         <TableCell className="font-medium">
-                          {email.to}
+                          {email?.to}
                         </TableCell>
-                        <TableCell>{truncateText(email.subject, 30)}</TableCell>
-                        <TableCell>{getStatusBadge(email.status)}</TableCell>
+                        <TableCell>
+                          {truncateText(email?.subject, 30)}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(email?.status)}</TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {formatDate(email.timestamp)}
+                          {formatDate(email.mint?.timestamp)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs">
-                              {email.txHash.slice(0, 8)}...
+                              {email?.mint?.transactionHash?.slice(0, 8)}...
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => copyTxHash(email.txHash)}
+                              onClick={() =>
+                                copyTxHash(email?.mint?.transactionHash)
+                              }
                               className="h-6 w-6 p-0"
                             >
                               <Copy className="h-3 w-3" />
@@ -188,7 +232,9 @@ export function EmailDashboard() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Link href={`/proof/${email.txHash}`}>
+                            <Link
+                              href={`/proof/${email?.mint?.transactionHash}`}
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -201,7 +247,7 @@ export function EmailDashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => previewEmail(email)}
+                              onClick={() => previewEmail(email.recipient)}
                               className="h-6 w-6 p-0"
                               title="Preview Email"
                             >
@@ -212,7 +258,7 @@ export function EmailDashboard() {
                               size="sm"
                               onClick={() =>
                                 window.open(
-                                  `https://etherscan.io/tx/${email.txHash}`,
+                                  `https://etherscan.io/tx/${email.mint?.transactionHash}`,
                                   "_blank"
                                 )
                               }
@@ -220,15 +266,6 @@ export function EmailDashboard() {
                               title="View on Etherscan"
                             >
                               <ExternalLink className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteEmail(email.id)}
-                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                              title="Delete Email"
-                            >
-                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </TableCell>
@@ -241,7 +278,6 @@ export function EmailDashboard() {
           )}
         </CardContent>
       </Card>
-
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         {selectedEmail && (
           <DialogContent className="max-w-2xl">
