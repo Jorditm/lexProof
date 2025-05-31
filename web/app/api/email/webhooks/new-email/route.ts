@@ -1,5 +1,6 @@
 import { createVlayerClient, preverifyEmail, Proof } from "@vlayer/sdk";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 
 import proverSpec from "@/lib/abis/LexProofProver.json";
 import verifierSpec from "@/lib/abis/LexProofVerifier.json";
@@ -14,6 +15,18 @@ function extractMessageId(fullMessageId: string): string {
 }
 
 export async function POST(request: Request) {
+  const latestUnprocessed = await db.execute({
+    sql: `SELECT sender FROM emails WHERE processed = 0 ORDER BY date DESC LIMIT 1`,
+  });
+
+  const senderRow = latestUnprocessed.rows[0];
+
+  if (!senderRow) {
+    return NextResponse.json({ error: "No unprocessed emails found" }, { status: 404 });
+  }
+
+  const senderAddress = senderRow.sender as string;
+
   const requestBody = await request.json();
 
   if (requestBody.data.object.grant_id !== process.env.NYLAS_GRANT_ID) {
@@ -62,7 +75,7 @@ export async function POST(request: Request) {
     address: "0x06AB866f9fA5C541a898518011Cf284043D25126",
     proverAbi: proverSpec.abi as Abi,
     functionName: "main",
-    args: [preverifiedEmail, "0xfaB71618C291D0363B5c6A4a5784cB829Deb4A38"],
+    args: [preverifiedEmail, senderAddress as `0x${string}`],
     chainId: 11155111,
   });
 
@@ -102,6 +115,11 @@ export async function POST(request: Request) {
   const tx = await walletClient.writeContract({
     ...txRequest,
     account,
+  });
+
+  await db.execute({
+    sql: `UPDATE emails SET processed = 1 WHERE sender = ? AND processed = 0 ORDER BY date DESC LIMIT 1`,
+    args: [sender],
   });
 
   return NextResponse.json({ success: true, tx });

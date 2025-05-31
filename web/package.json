@@ -28,6 +28,7 @@
   "dependencies": {
     "@blockscout/app-sdk": "^0.1.1",
     "@hookform/resolvers": "^3.9.1",
+    "@libsql/client": "^0.15.8",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -72,6 +73,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "debug": "^4.4.0",
+    "eciesjs": "^0.4.15",
     "embla-carousel-react": "8.5.1",
     "html2canvas": "^1.4.1",
     "input-otp": "1.4.1",

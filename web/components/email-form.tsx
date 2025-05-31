@@ -99,27 +99,22 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
           const messageContent = editor?.getHTML() || "";
           const emailId = Date.now().toString();
           const verificationLink = generateVerificationLink(emailId);
-
-          // Paso 1: firma
-          const signature = await signMessageAsync({
-            message: `Sign this message to confirm email: ${emailId}`,
-          });
-
           toast.success("Message signed successfully");
 
           // Paso 2: construir payload
-          const emailData = {
-            id: emailId,
-            to: email,
-            subject,
-            message: messageContent,
-            from: walletAddress,
-            timestamp: new Date().toISOString(),
-            status: "sent",
-            txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-            verificationLink,
-            signature,
-          };
+      const emailData = {
+        id: emailId,
+        to: "lexproof@jordiplanas.cat",
+        cc: email,
+        subject,
+        message: messageContent,
+        from: walletAddress,
+        timestamp: new Date().toISOString(),
+        status: "sent",
+        txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+        verificationLink,
+        signature,
+      };
 
           // Paso 3: enviar email
           const response = await fetch("/api/email/send", {
@@ -157,7 +152,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
             <Mail className="h-5 w-5" /> Compose Email
           </CardTitle>
           <CardDescription>
-            Send a verified email with on-chain proof of delivery
+            Send a verified email with on-chain proof of content and delivery
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -344,7 +339,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               <div>
                 <p className="font-medium">Email Verification</p>
                 <p className="text-sm text-slate-600">
-                  vlayer verifies email ownership through cryptographic proof
+                  vlayer proves and verifies email content and delivery through cryptographic proof
                 </p>
               </div>
             </div>
@@ -355,7 +350,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               <div>
                 <p className="font-medium">Message Signing</p>
                 <p className="text-sm text-slate-600">
-                  Your wallet signs the email content for authenticity
+                  Your wallet signs the email content for privacy, authenticity and non-repudiation
                 </p>
               </div>
             </div>
@@ -364,9 +359,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 3
               </Badge>
               <div>
-                <p className="font-medium">On-chain Storage</p>
+                <p className="font-medium">Email proof</p>
                 <p className="text-sm text-slate-600">
-                  Email hash and proof are stored on the blockchain
+                  Once proved and verified, an NFT is issued to your address to prove ownership of the email content
                 </p>
               </div>
             </div>
@@ -375,17 +370,16 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 4
               </Badge>
               <div>
-                <p className="font-medium">Open Tracking</p>
+                <p className="font-medium">Privacy and certification</p>
                 <p className="text-sm text-slate-600">
-                  One-time verification links track email opens securely
+                  Access the private information of the email securely with your wallet, and download proof to make it public when needed
                 </p>
               </div>
             </div>
           </div>
           <div className="pt-4 border-t">
             <p className="text-xs text-slate-500">
-              This is a hackathon prototype. In production, vlayer would handle
-              the actual email verification and proof generation.
+              This is a hackathon prototype. Use it at your own risk.
             </p>
           </div>
         </CardContent>

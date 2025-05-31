@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { render } from "@react-email/render";
 import LexproofTemplate from "@/emails/LexProofEmail";
 import Nylas from "nylas";
+import { db } from "@/lib/db";
 
 // Configura el cliente de Nylas
 const nylas = new Nylas({
@@ -15,6 +16,7 @@ export async function POST(req: NextRequest) {
 
   const {
     to,
+    cc,
     subject,
     message,
     from,
@@ -26,8 +28,8 @@ export async function POST(req: NextRequest) {
     signature,
   } = emailData;
 
-  if (!to || !subject || !message) {
-    console.info("Missing required fields:", { to, subject, message });
+  if (!to || !cc || !subject || !message) {
+    console.info("Missing required fields:", { to, cc, subject, message });
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -51,19 +53,63 @@ export async function POST(req: NextRequest) {
         body: html,
         to: [
           {
-            name: "Lexproof",
+            name: "LexProof",
             email: to,
+          },
+        ],
+        cc: [
+          {
+            name: "Recipient",
+            email: cc,
           },
         ],
       },
     });
 
     console.info("Email sent successfully via Nylas. Response:", sentMessage);
-    return NextResponse.json({ success: true, data: sentMessage });
   } catch (error) {
     console.error("Error sending email via Nylas:", error);
     return NextResponse.json(
       { error: "Failed to send email via Nylas" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const baseUrl = req.nextUrl.origin;
+    const encryptedSubject = await fetch(`${baseUrl}/api/encrypt/encrypt-content`, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: subject }),
+    });
+    const encryptedSubjectResponse = await encryptedSubject.json();
+    console.info("Encrypted subject:", encryptedSubjectResponse);
+
+    const encryptedMessage = await fetch(`${baseUrl}/api/encrypt/encrypt-content`, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: message }),
+    });
+    const encryptedMessageResponse = await encryptedMessage.json();
+    console.info("Encrypted message:", encryptedMessageResponse);
+
+    // Save the email to the database
+    const result = await db.execute(
+      "INSERT INTO emails (subject, recipient, sender, content) VALUES (?, ?, ?, ?)",
+      [encryptedSubjectResponse.encrypted, cc, from, encryptedMessageResponse.encrypted]
+    );
+    console.info("Email saved to database:", result);
+
+    return NextResponse.json({ success: true, data: result });
+
+  } catch (error) {
+    console.error("Error encrypting content:", error);
+    return NextResponse.json(
+      { error: "Failed to encrypt content" },
       { status: 500 }
     );
   }
