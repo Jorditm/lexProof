@@ -5,9 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prepare:abis": "ts-node lib/scripts/extract-abis.js",
-    "prebuild": "bun run prepare:abis",
-    "pre-commit": "bun run prepare:abis && next build",
+    "pre-commit": "node lib/scripts/extract-abis.js && next build",
     "start": "next start",
     "lint": "next lint",
     "email": "email dev",
