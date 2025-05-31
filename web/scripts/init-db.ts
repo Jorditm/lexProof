@@ -10,6 +10,7 @@ async function init() {
           sender TEXT NOT NULL,
           recipient TEXT NOT NULL,
           content TEXT NOT NULL,
+          txhash TEXT,
           processed BOOLEAN DEFAULT FALSE
         )
       `);

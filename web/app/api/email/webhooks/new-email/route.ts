@@ -118,8 +118,8 @@ export async function POST(request: Request) {
   });
 
   await db.execute({
-    sql: `UPDATE emails SET processed = 1 WHERE sender = ? AND processed = 0 ORDER BY date DESC LIMIT 1`,
-    args: [sender],
+    sql: `UPDATE emails SET processed = 1, txhash = ? WHERE sender = ? AND processed = 0 ORDER BY date DESC LIMIT 1`,
+    args: [tx, sender],
   });
 
   return NextResponse.json({ success: true, tx });

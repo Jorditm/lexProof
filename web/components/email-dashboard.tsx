@@ -27,13 +27,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
-
 import { toast } from "sonner";
-
 import { useAccount, useReadContracts } from "wagmi";
-import { getEmailNfts } from "@/lib/alchemy";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "./ui/skeleton";
 
 interface Email {
@@ -61,17 +57,26 @@ export function EmailDashboard() {
   } = useQuery({
     queryKey: ["emailNfts", account.address],
     queryFn: async () => {
+      if (!account.address) return [];
       const res = await fetch(
-        `https://eth.blockscout.com/api/v2/addresses/${account.address}/nft?type=ERC-721`
+        `https://eth-sepolia.blockscout.com/api/v2/addresses/0xfaB71618C291D0363B5c6A4a5784cB829Deb4A38/nft?type=ERC-721`
       );
       if (!res.ok) throw new Error("Failed to fetch NFTs");
       const data = await res.json();
-      // Asegura que siempre retornas un array
-      return Array.isArray(data.tokens) ? data.tokens : [];
+      // Filtra solo los NFTs con el token.address deseado
+      const filtered = Array.isArray(data.items)
+        ? data.items.filter(
+            (nft: any) =>
+              nft.token?.address?.toLowerCase() ===
+              "0x430ec731a6e53a7e015e9b1d01a5cea7232b19ae"
+          )
+        : [];
+      return filtered;
     },
     enabled: Boolean(account.address),
     staleTime: 0,
   });
+  console.log("emails", emails);
   const userContract = {
     address: account.address,
     abi: [],
