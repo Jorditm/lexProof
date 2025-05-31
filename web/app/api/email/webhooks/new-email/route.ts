@@ -104,12 +104,20 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const searchParams = new URL(request.url).searchParams;
-  const challenge = searchParams.get("challenge");
+  const { searchParams } = new URL(request.url)
+  const challenge = searchParams.get('challenge')
 
-  if (challenge) {
-    return NextResponse.json({ challenge });
+  if (!challenge) {
+    return NextResponse.json({ message: 'No challenge provided' }, { status: 400 })
   }
 
-  return NextResponse.json({ message: "No challenge provided" });
+  return new NextResponse(
+    JSON.stringify({ challenge }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
 }
