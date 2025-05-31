@@ -1,7 +1,8 @@
 import { createVlayerClient, preverifyEmail, Proof } from "@vlayer/sdk";
 import { NextResponse } from "next/server";
-import proverSpec from "../../../../../../out/LexProofProver.sol/LexProofProver.json";
-import verifierSpec from "../../../../../../out/LexProofVerifier.sol/LexProofVerifier.json";
+
+import proverSpec from "@/lib/abis/LexProofProver.json";
+import verifierSpec from "@/lib/abis/LexProofVerifier.json";
 import type { Abi } from "viem";
 import { createWalletClient, http, createPublicClient } from "viem";
 import { sepolia } from "viem/chains";
