@@ -2,7 +2,7 @@
  curl -fsSL https://bun.sh/install | bash
 
  # Bun install in repo vlayer 
- cd contracts/vlayer
+ cd web
  bun install
 
  # Run the docker server
