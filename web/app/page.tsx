@@ -38,8 +38,6 @@ export default function Home() {
         {/* Wallet Connection Status */}
         <div className="flex justify-center mb-8">
           <WalletConnection
-            isConnected={isConnected}
-            walletAddress={walletAddress}
             onConnect={setIsConnected}
             onAddressChange={setWalletAddress}
           />

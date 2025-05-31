@@ -1,7 +1,10 @@
 "use client";
 
 import type React from "react";
-import { TransactionPopupProvider } from "@blockscout/app-sdk";
+import {
+  TransactionPopupProvider,
+  NotificationProvider,
+} from "@blockscout/app-sdk";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { sepolia } from "viem/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,11 +23,13 @@ const queryClient = new QueryClient();
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <TransactionPopupProvider>
-      <WagmiProvider config={config}>
-        <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>{children}</RainbowKitProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
+      <NotificationProvider>
+        <WagmiProvider config={config}>
+          <QueryClientProvider client={queryClient}>
+            <RainbowKitProvider>{children}</RainbowKitProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </NotificationProvider>
     </TransactionPopupProvider>
   );
 }
