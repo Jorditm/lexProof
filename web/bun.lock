@@ -4,7 +4,7 @@
     "": {
       "name": "my-v0-project",
       "dependencies": {
-        "@blockscout/app-sdk": "^0.1.0",
+        "@blockscout/app-sdk": "^0.1.1",
         "@hookform/resolvers": "^3.9.1",
         "@libsql/client": "^0.15.8",
         "@radix-ui/react-accordion": "1.2.2",
@@ -133,7 +133,7 @@
 
     "@babel/types": ["@babel/types@7.27.3", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.27.1" } }, "sha512-Y1GkI4ktrtvmawoSq+4FCVHNryea6uR+qUQy0AGxLSsjCX0nVmkYQMBLHDkXZuo5hGx7eYdnIaslsdBFm7zbUw=="],
 
-    "@blockscout/app-sdk": ["@blockscout/app-sdk@0.1.0", "", { "dependencies": { "@ark-ui/react": "5.9.1", "@types/styled-components": "5.1.34", "bignumber.js": "^9.3.0", "classnames": "2.5.1", "dayjs": "1.11.13", "gradient-avatar": "git+https://github.com/blockscout/gradient-avatar.git", "styled-components": "6.1.18" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-nofOc2NcO6lO9tf2CBsvJrwUoOGXS7RBTddjlJMrFNeqTWARqwxOIKf6LSFojsRuEXEDHGXmpI+q/9g4EfS5fw=="],
+    "@blockscout/app-sdk": ["@blockscout/app-sdk@0.1.1", "", { "dependencies": { "@ark-ui/react": "5.9.1", "@types/styled-components": "5.1.34", "bignumber.js": "^9.3.0", "classnames": "2.5.1", "dayjs": "1.11.13", "gradient-avatar": "git+https://github.com/blockscout/gradient-avatar.git", "styled-components": "6.1.18" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0" } }, "sha512-7m25hk7IsAACd55zdw3ax8WRz0Z2n0rv9PZflA+dizaxDjE6xe6MUOJCEyxsSm0knLQ3LhpHL+rMxHdfyg8yLg=="],
 
     "@coinbase/wallet-sdk": ["@coinbase/wallet-sdk@4.3.0", "", { "dependencies": { "@noble/hashes": "^1.4.0", "clsx": "^1.2.1", "eventemitter3": "^5.0.1", "preact": "^10.24.2" } }, "sha512-T3+SNmiCw4HzDm4we9wCHCxlP0pqCiwKe4sOwPH3YAK2KSKjxPRydKu6UQJrdONFVLG7ujXvbd/6ZqmvJb8rkw=="],
 
@@ -1263,7 +1263,7 @@
 
     "gopd": ["gopd@1.2.0", "", {}, "sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg=="],
 
-    "gradient-avatar": ["gradient-avatar@git+ssh://git@github.com/blockscout/gradient-avatar.git#86810368c2581d2dc3aca089dc648336c8e17045", { "dependencies": { "hsl-rgb": "^1.0.0", "hsl-triad": "^1.0.0", "string-hash": "^1.1.3" } }, "86810368c2581d2dc3aca089dc648336c8e17045"],
+    "gradient-avatar": ["gradient-avatar@github:blockscout/gradient-avatar#8681036", { "dependencies": { "hsl-rgb": "^1.0.0", "hsl-triad": "^1.0.0", "string-hash": "^1.1.3" } }, "blockscout-gradient-avatar-8681036"],
 
     "h3": ["h3@1.15.3", "", { "dependencies": { "cookie-es": "^1.2.2", "crossws": "^0.3.4", "defu": "^6.1.4", "destr": "^2.0.5", "iron-webcrypto": "^1.2.1", "node-mock-http": "^1.0.0", "radix3": "^1.1.2", "ufo": "^1.6.1", "uncrypto": "^0.1.3" } }, "sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ=="],
 

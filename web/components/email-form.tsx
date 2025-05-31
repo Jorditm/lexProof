@@ -22,25 +22,39 @@ import {
   Undo,
   Redo,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TipTapLink from "@tiptap/extension-link";
 import { useSignMessage } from "wagmi";
+import { useChainId } from "wagmi";
+import { toast } from "sonner";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+
+const emailFormSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(1, "Message cannot be empty"),
+});
 
 interface EmailFormProps {
   walletAddress: string;
 }
 
 export function EmailForm({ walletAddress }: EmailFormProps) {
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
   const [isSending, setIsSending] = useState(false);
-  // const { openTxToast } = useNotification();
   const { signMessageAsync } = useSignMessage();
-
-  const { toast } = useToast();
+  const chainId = useChainId();
 
   const editor = useEditor({
     extensions: [
@@ -53,37 +67,41 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
     content: "",
   });
 
+  const form = useForm<z.infer<typeof emailFormSchema>>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: {
+      email: "",
+      subject: "",
+      message: "",
+    },
+  });
+
   const generateVerificationLink = (emailId: string) => {
-    // Generate a unique verification ID
     const verificationId = `${emailId}_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
     return `${window.location.origin}/verify/open/${verificationId}`;
   };
 
-  const sendEmail = async () => {
-    if (!email || !subject || (editor && editor.isEmpty)) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
+  const sendEmail = async (data: z.infer<typeof emailFormSchema>) => {
+    if (!data.email || !data.subject || (editor && editor.isEmpty)) {
+      toast.error("Missing fields");
       return;
     }
+
+    const { email, subject } = data;
 
     setIsSending(true);
 
     try {
-      const messageContent = editor?.getHTML() || "";
-      const emailId = Date.now().toString();
-      const verificationLink = generateVerificationLink(emailId);
+      await toast.promise(
+        (async () => {
+          const messageContent = editor?.getHTML() || "";
+          const emailId = Date.now().toString();
+          const verificationLink = generateVerificationLink(emailId);
+          toast.success("Message signed successfully");
 
-      // 1. Firma el mensaje antes de cualquier envío
-      const signature = await signMessageAsync({
-        message: `Sign this message to confirm email: ${emailId}`,
-      });
-
-      // 2. Si la firma fue exitosa, construye el payload
+          // Paso 2: construir payload
       const emailData = {
         id: emailId,
         to: "lexproof@jordiplanas.cat",
@@ -98,37 +116,29 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
         signature,
       };
 
-      // 3. Envío al endpoint
-      const response = await fetch("/api/email/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(emailData),
-      });
+          // Paso 3: enviar email
+          const response = await fetch("/api/email/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(emailData),
+          });
 
-      if (!response.ok) throw new Error("API error");
+          if (!response.ok) {
+            throw new Error("Failed to send email");
+          }
 
-      toast({
-        title: "Email sent successfully",
-        description: "Email sent with verification tracking enabled",
-      });
-
-      toast({
-        title: "Demo: Verification Link Generated",
-        description: `Click to simulate email open: ${verificationLink}`,
-        duration: 10000,
-      });
-
-      // Reset form
-      setEmail("");
-      setSubject("");
-      editor?.commands.clearContent();
-    } catch (error) {
-      toast({
-        title: "Failed to send email",
-        description:
-          "An error occurred while signing or sending. Make sure you accepted the signature request.",
-        variant: "destructive",
-      });
+          // Reset form si fue exitoso
+          form.reset();
+          editor?.commands.clearContent();
+        })(),
+        {
+          loading: "Signing message and sending email...",
+          success: "Email sent successfully",
+          error: "Something went wrong during the process",
+        }
+      );
+    } catch (err) {
+      toast.error("Failed to send email");
     } finally {
       setIsSending(false);
     }
@@ -136,133 +146,185 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {/* Email Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Compose Email
+            <Mail className="h-5 w-5" /> Compose Email
           </CardTitle>
           <CardDescription>
             Send a verified email with on-chain proof of content and delivery
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Recipient Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="recipient@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(sendEmail)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recipient Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="recipient@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
-            <Input
-              id="subject"
-              placeholder="Email subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Email subject" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
-            <div className="border rounded-md">
-              <div className="flex items-center gap-1 p-1 border-b bg-slate-50">
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Message</FormLabel>
+                    <FormControl>
+                      <div className="border rounded-md">
+                        <div className="flex items-center gap-1 p-1 border-b bg-slate-50">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() =>
+                              editor?.chain().focus().toggleBold().run()
+                            }
+                            disabled={
+                              !editor?.can().chain().focus().toggleBold().run()
+                            }
+                            data-active={editor?.isActive("bold")}
+                          >
+                            {" "}
+                            <Bold className="h-4 w-4" />{" "}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() =>
+                              editor?.chain().focus().toggleItalic().run()
+                            }
+                            disabled={
+                              !editor
+                                ?.can()
+                                .chain()
+                                .focus()
+                                .toggleItalic()
+                                .run()
+                            }
+                            data-active={editor?.isActive("italic")}
+                          >
+                            {" "}
+                            <Italic className="h-4 w-4" />{" "}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() =>
+                              editor?.chain().focus().toggleUnderline().run()
+                            }
+                            disabled={
+                              !editor
+                                ?.can()
+                                .chain()
+                                .focus()
+                                .toggleUnderline()
+                                .run()
+                            }
+                            data-active={editor?.isActive("underline")}
+                          >
+                            {" "}
+                            <span className="underline text-xs font-bold">
+                              U
+                            </span>{" "}
+                          </Button>
+                          <span className="w-px h-4 bg-slate-300 mx-1"></span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => editor?.chain().focus().undo().run()}
+                            disabled={
+                              !editor?.can().chain().focus().undo().run()
+                            }
+                          >
+                            {" "}
+                            <Undo className="h-4 w-4" />{" "}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => editor?.chain().focus().redo().run()}
+                            disabled={
+                              !editor?.can().chain().focus().redo().run()
+                            }
+                          >
+                            {" "}
+                            <Redo className="h-4 w-4" />{" "}
+                          </Button>
+                        </div>
+                        <div className="p-3 min-h-[200px] prose prose-sm max-w-none">
+                          <EditorContent
+                            editor={editor}
+                            onBlur={() =>
+                              form.setValue(
+                                "message",
+                                editor?.getHTML() || "",
+                                { shouldValidate: true }
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-2">
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => editor?.chain().focus().toggleBold().run()}
-                  disabled={!editor?.can().chain().focus().toggleBold().run()}
-                  data-active={editor?.isActive("bold")}
+                  type="submit"
+                  disabled={isSending}
+                  className="flex items-center gap-2 flex-1"
                 >
-                  <Bold className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => editor?.chain().focus().toggleItalic().run()}
-                  disabled={!editor?.can().chain().focus().toggleItalic().run()}
-                  data-active={editor?.isActive("italic")}
-                >
-                  <Italic className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() =>
-                    editor?.chain().focus().toggleUnderline().run()
-                  }
-                  disabled={
-                    !editor?.can().chain().focus().toggleUnderline().run()
-                  }
-                  data-active={editor?.isActive("underline")}
-                >
-                  <span className="underline text-xs font-bold">U</span>
-                </Button>
-                <span className="w-px h-4 bg-slate-300 mx-1"></span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => editor?.chain().focus().undo().run()}
-                  disabled={!editor?.can().chain().focus().undo().run()}
-                >
-                  <Undo className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => editor?.chain().focus().redo().run()}
-                  disabled={!editor?.can().chain().focus().redo().run()}
-                >
-                  <Redo className="h-4 w-4" />
+                  {isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Send Email
                 </Button>
               </div>
-              <div className="p-3 min-h-[200px] prose prose-sm max-w-none">
-                <EditorContent editor={editor} />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={sendEmail}
-              disabled={
-                !email || !subject || (editor && editor.isEmpty) || isSending
-              }
-              className="flex items-center gap-2 flex-1"
-            >
-              {isSending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Send Email
-            </Button>
-          </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
-      {/* vlayer Integration Info */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            vlayer Integration
+            <Shield className="h-5 w-5" /> vlayer Integration
           </CardTitle>
           <CardDescription>
             How email verification works with vlayer
@@ -281,7 +343,6 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 </p>
               </div>
             </div>
-
             <div className="flex items-start gap-3">
               <Badge variant="outline" className="mt-0.5">
                 2
@@ -293,7 +354,6 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 </p>
               </div>
             </div>
-
             <div className="flex items-start gap-3">
               <Badge variant="outline" className="mt-0.5">
                 3
@@ -305,7 +365,6 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
                 </p>
               </div>
             </div>
-
             <div className="flex items-start gap-3">
               <Badge variant="outline" className="mt-0.5">
                 4
@@ -318,7 +377,6 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
               </div>
             </div>
           </div>
-
           <div className="pt-4 border-t">
             <p className="text-xs text-slate-500">
               This is a hackathon prototype. Use it at your own risk.
@@ -326,6 +384,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
           </div>
         </CardContent>
       </Card>
+
       <style jsx global>{`
         .ProseMirror {
           outline: none;

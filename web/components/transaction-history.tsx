@@ -31,9 +31,8 @@ export function TransactionHistory({
     try {
       openPopup({
         address: address || undefined,
-        chainId: String(chainId)
+        chainId: String(chainId),
         // Additional options can be configured here
-
       });
     } catch (error) {
       console.error("Failed to open transaction popup:", error);
