@@ -16,6 +16,10 @@ function extractMessageId(fullMessageId: string): string {
 export async function POST(request: Request) {
   const requestBody = await request.json();
 
+  if (requestBody.data.object.grant_id !== process.env.NYLAS_GRANT_ID) {
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
   const fullMessageId = requestBody.data.object.id;
   const messageId = extractMessageId(fullMessageId);
 
