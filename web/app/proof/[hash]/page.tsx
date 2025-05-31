@@ -32,6 +32,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+// import { getEmailNfts } from "@/lib/alchemy";
+import { useQuery } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 
 interface EmailProof {
   id: string;
@@ -48,68 +51,62 @@ interface EmailProof {
 export default function ProofPage() {
   const params = useParams();
   const hash = params.hash as string;
-  const [proof, setProof] = useState<EmailProof | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const account = useAccount();
+  const { data: proof } = useQuery({
+    queryKey: ["emailProof", hash, account.address],
+    queryFn: async () => {
+      // Simulate fetching proof by hash (replace with real API in production)
+      // Example: const data = await getEmailProofByHash(hash)
+      // For now, return mock data if hash matches a demo value
+      if (!hash) return null;
 
-  useEffect(() => {
-    const fetchProof = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // In a real implementation, this would fetch from your backend/blockchain
-        // For demo purposes, we'll check localStorage and generate mock data
-        const savedEmails = JSON.parse(
-          localStorage.getItem("sentEmails") || "[]"
-        );
-        const foundEmail = savedEmails.find(
-          (email: any) => email.txHash === hash
-        );
-
-        if (foundEmail) {
-          // Create proof from saved email
-          const emailProof: EmailProof = {
-            id: foundEmail.id,
-            senderAddress: foundEmail.from,
-            recipientEmail: maskEmail(foundEmail.to),
-            contentHash: generateContentHash(foundEmail.message),
-            subject: foundEmail.subject,
-            dateSent: foundEmail.timestamp,
-            txHash: foundEmail.txHash,
-            blockNumber: Math.floor(Math.random() * 1000000) + 18000000,
-            verified: true,
-          };
-          setProof(emailProof);
-        } else {
-          // Generate mock proof for demo
-          const mockProof: EmailProof = {
-            id: hash,
-            senderAddress: "0x742d35Cc6634C0532925a3b8D4C2C4e4C8b4C8b4",
-            recipientEmail: maskEmail("user@example.com"),
-            contentHash: hash.slice(0, 32),
-            subject: "Blockchain Verified Email",
-            dateSent: new Date().toISOString(),
-            txHash: hash,
-            blockNumber: Math.floor(Math.random() * 1000000) + 18000000,
-            verified: true,
-          };
-          setProof(mockProof);
-        }
-      } catch (err) {
-        setError("Failed to fetch email proof");
-      } finally {
-        setLoading(false);
+      // Demo/mock proof for illustration
+      if (hash === "demo1234") {
+        const emailProof: EmailProof = {
+          id: "1",
+          senderAddress: "0x1234567890abcdef1234567890abcdef12345678",
+          recipientEmail: maskEmail("recipient@example.com"),
+          contentHash: generateContentHash("Hello world!"),
+          subject: "Demo Email Subject",
+          dateSent: new Date().toISOString(),
+          txHash:
+            "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+          blockNumber: 18012345,
+          verified: true,
+        };
+        return emailProof;
       }
-    };
 
-    if (hash) {
-      fetchProof();
-    }
-  }, [hash]);
+      return null;
+    },
+  });
+
+  // useEffect(() => {
+  //   const fetchProof = async () => {
+  //     setLoading(true);
+  //     setError(null);
+
+  //     try {
+  //       // Simulate API call delay
+  //       await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  //       // In a real implementation, this would fetch from your backend/blockchain
+  //       // For demo purposes, we'll check localStorage and generate mock data
+
+  //       }
+  //     } catch (err) {
+  //       setError("Failed to fetch email proof");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   if (hash) {
+  //     fetchProof();
+  //   }
+  // }, [hash]);
 
   const maskEmail = (email: string) => {
     const [username, domain] = email.split("@");
