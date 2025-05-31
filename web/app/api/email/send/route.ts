@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   try {
     // Envía el correo electrónico utilizando el SDK de Nylas
     const sentMessage = await nylas.messages.send({
-      identifier: process.env.NYLAS_GRANT_ID!,
+      identifier: process.env.NYLAS_SENDER_GRANT_ID!,
       requestBody: {
         subject,
         body: html,
