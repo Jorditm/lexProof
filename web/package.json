@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prepare:abis": "ts-node lib/scripts/extract-abis.ts",
+    "prepare:abis": "ts-node lib/scripts/extract-abis.js",
     "prebuild": "bun run prepare:abis",
     "pre-commit": "bun run prepare:abis && next build",
     "start": "next start",
