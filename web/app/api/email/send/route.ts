@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
 
   const {
     to,
+    cc,
     subject,
     message,
     from,
@@ -29,8 +30,8 @@ export async function POST(req: NextRequest) {
     signature,
   } = emailData;
 
-  if (!to || !subject || !message) {
-    console.info("Missing required fields:", { to, subject, message });
+  if (!to || !cc || !subject || !message) {
+    console.info("Missing required fields:", { to, cc, subject, message });
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -54,8 +55,14 @@ export async function POST(req: NextRequest) {
         body: html,
         to: [
           {
-            name: "Lexxproof",
+            name: "LexProof",
             email: to,
+          },
+        ],
+        cc: [
+          {
+            name: "Recipient",
+            email: cc,
           },
         ],
       },

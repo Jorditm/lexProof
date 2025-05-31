@@ -86,7 +86,8 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
       // 2. Si la firma fue exitosa, construye el payload
       const emailData = {
         id: emailId,
-        to: email,
+        to: "lexproof@jordiplanas.cat",
+        cc: email,
         subject,
         message: messageContent,
         from: walletAddress,
