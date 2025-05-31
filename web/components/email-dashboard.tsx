@@ -34,6 +34,7 @@ import { useAccount, useReadContracts } from "wagmi";
 import { getEmailNfts } from "@/lib/alchemy";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "./ui/skeleton";
 
 interface Email {
   id: string;
@@ -52,14 +53,25 @@ export function EmailDashboard() {
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const account = useAccount();
-  const { data: emails } = useQuery({
-    queryKey: ["emailNfts"],
+
+  const {
+    data: emails,
+    refetch: refetchNfts,
+    isFetching: isFetchingNfts,
+  } = useQuery({
+    queryKey: ["emailNfts", account.address],
     queryFn: async () => {
-      const data = await getEmailNfts(account.address as `0x${string})`);
-      return data.ownedNfts;
+      const res = await fetch(
+        `https://eth.blockscout.com/api/v2/addresses/${account.address}/nft?type=ERC-721`
+      );
+      if (!res.ok) throw new Error("Failed to fetch NFTs");
+      const data = await res.json();
+      // Asegura que siempre retornas un array
+      return Array.isArray(data.tokens) ? data.tokens : [];
     },
+    enabled: Boolean(account.address),
+    staleTime: 0,
   });
-  console.log("emails", emails);
   const userContract = {
     address: account.address,
     abi: [],
@@ -125,16 +137,42 @@ export function EmailDashboard() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Email Dashboard
-          </CardTitle>
-          <CardDescription>
-            Track your sent emails and their verification status
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Dashboard
+              </CardTitle>
+              <CardDescription>
+                Track your sent emails and their verification status
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto mt-2"
+              onClick={() => refetchNfts()}
+              disabled={isFetchingNfts}
+            >
+              {isFetchingNfts ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {emails?.length === 0 ? (
+          {isFetchingNfts ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              ))}
+            </div>
+          ) : emails?.length === 0 ? (
             <div className="text-center py-8">
               <Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <p className="text-slate-600">No emails sent yet</p>
@@ -150,7 +188,6 @@ export function EmailDashboard() {
                   {emails?.length !== 1 ? "s" : ""} sent
                 </p>
               </div>
-
               <div className="border rounded-lg">
                 <Table>
                   <TableHeader>
@@ -164,7 +201,7 @@ export function EmailDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {emails?.map((email) => (
+                    {emails?.map((email: any) => (
                       <TableRow key={email?.id}>
                         <TableCell className="font-medium">
                           {email?.to}
@@ -241,7 +278,6 @@ export function EmailDashboard() {
           )}
         </CardContent>
       </Card>
-
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         {selectedEmail && (
           <DialogContent className="max-w-2xl">
