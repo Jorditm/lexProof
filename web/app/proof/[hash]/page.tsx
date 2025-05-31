@@ -464,7 +464,7 @@ export default function ProofPage() {
             {/* Footer for PDF */}
             <div className="text-center mt-6 pt-4 border-t">
               <p className="text-xs text-slate-500">
-                Generated on {new Date().toLocaleString()} • EmailProof -
+                Generated on {new Date().toLocaleString()} • LexProof -
                 Blockchain Email Verification
               </p>
             </div>
@@ -492,7 +492,7 @@ export default function ProofPage() {
                 blockchain
               </p>
               <Link href="/">
-                <Button variant="outline">Return to EmailProof</Button>
+                <Button variant="outline">Return to LexProof</Button>
               </Link>
             </div>
           </div>

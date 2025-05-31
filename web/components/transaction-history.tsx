@@ -25,17 +25,15 @@ export function TransactionHistory({
   title = "Transaction History",
   description,
 }: TransactionHistoryProps) {
-  const { openTransactionPopup } = useTransactionPopup();
+  const { openPopup } = useTransactionPopup();
 
   const handleOpenHistory = () => {
     try {
-      openTransactionPopup({
+      openPopup({
         address: address || undefined,
-        chainId,
+        chainId: String(chainId)
         // Additional options can be configured here
-        theme: "light",
-        width: 800,
-        height: 600,
+
       });
     } catch (error) {
       console.error("Failed to open transaction popup:", error);

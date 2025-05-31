@@ -19,9 +19,6 @@ import {
   Loader2,
   Bold,
   Italic,
-  List,
-  ListOrdered,
-  LinkIcon,
   Undo,
   Redo,
 } from "lucide-react";
@@ -30,6 +27,11 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TipTapLink from "@tiptap/extension-link";
+import { useSignMessage } from "wagmi";
+import {
+  type SignMessageData,
+  signMessageMutationOptions,
+} from 'wagmi/query'
 
 interface EmailFormProps {
   walletAddress: string;
@@ -39,6 +41,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [isSending, setIsSending] = useState(false);
+  // const { openTxToast } = useNotification();
+  const { signMessage } = useSignMessage();
+
   const { toast } = useToast();
 
   const editor = useEditor({
@@ -71,7 +76,9 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
     }
 
     setIsSending(true);
+    signMessage({ message: "Confirna tu identidad" });
 
+    
     try {
       // Mock email sending with blockchain proof
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -114,6 +121,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
       existingEmails.push(emailData);
       localStorage.setItem("sentEmails", JSON.stringify(existingEmails));
 
+      // openTxToast("1", `0x${Math.random().toString(16).substr(2, 64)}`);
       toast({
         title: "Email sent successfully",
         description: "Email sent with verification tracking enabled",

@@ -355,7 +355,7 @@ export default function EmailVerificationPage() {
                 Back to Dashboard
               </Button>
             </Link>
-            <p className="text-sm text-slate-500">Thank you for using EmailProof - Blockchain Email Verification</p>
+            <p className="text-sm text-slate-500">Thank you for using LexProof - Blockchain Email Verification</p>
           </div>
         </div>
       </div>
