@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CheckCircle, ExternalLink, Mail, Clock, Shield, AlertCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useQuery } from "@tanstack/react-query"
+import { useAccount } from "wagmi"
 
 interface EmailVerification {
   id: string
@@ -28,75 +30,45 @@ export default function EmailVerificationPage() {
   const [verification, setVerification] = useState<EmailVerification | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { address } = useAccount()
+
+  // React Query para obtener NFTs
+  const { data: nftData, isLoading: nftLoading, error: nftError } = useQuery({
+    queryKey: ["nfts", address],
+    queryFn: async () => {
+      if (!address) return null
+      const res = await fetch(
+        `https://eth-sepolia.blockscout.com/api/v2/addresses/${address}/nft?type=ERC-721`
+      )
+      if (!res.ok) throw new Error("Failed to fetch NFT data")
+      return res.json()
+    },
+    enabled: !!address,
+  })
 
   useEffect(() => {
-    const verifyEmailOpen = async () => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Check if this verification has already been used
-        const usedVerifications = JSON.parse(localStorage.getItem("usedVerifications") || "[]")
-        const alreadyUsed = usedVerifications.includes(id)
-
-        // Get email data from localStorage
-        const savedEmails = JSON.parse(localStorage.getItem("sentEmails") || "[]")
-        const relatedEmail = savedEmails.find((email: any) => email.id === id || email.txHash.includes(id.slice(0, 8)))
-
-        if (relatedEmail || !alreadyUsed) {
-          const currentTime = new Date().toISOString()
-
-          // Create verification record
-          const emailVerification: EmailVerification = {
-            id,
-            emailId: relatedEmail?.id || id,
-            subject: relatedEmail?.subject || "Email Verification",
-            recipientEmail: relatedEmail?.to || "recipient@example.com",
-            senderAddress: relatedEmail?.from || "0x742d35Cc6634C0532925a3b8D4C2C4e4C8b4C8b4",
-            openedAt: currentTime,
-            txHash: relatedEmail?.txHash || `0x${Math.random().toString(16).substr(2, 64)}`,
-            blockNumber: Math.floor(Math.random() * 1000000) + 18000000,
-            verified: true,
-            alreadyOpened: alreadyUsed,
-          }
-
-          // Mark this verification as used (one-time use)
-          if (!alreadyUsed) {
-            usedVerifications.push(id)
-            localStorage.setItem("usedVerifications", JSON.stringify(usedVerifications))
-
-            // Update email status to "opened" if it exists
-            if (relatedEmail) {
-              const updatedEmails = savedEmails.map((email: any) =>
-                email.id === relatedEmail.id ? { ...email, status: "opened", openedAt: currentTime } : email,
-              )
-              localStorage.setItem("sentEmails", JSON.stringify(updatedEmails))
-            }
-
-            // Store verification record
-            const verificationRecords = JSON.parse(localStorage.getItem("verificationRecords") || "[]")
-            verificationRecords.push(emailVerification)
-            localStorage.setItem("verificationRecords", JSON.stringify(verificationRecords))
-          }
-
-          setVerification(emailVerification)
-        } else {
-          setError("Invalid or expired verification link")
-        }
-      } catch (err) {
-        setError("Failed to verify email open")
-      } finally {
-        setLoading(false)
-      }
+    if (nftData) {
+      // Aquí puedes adaptar la estructura según la respuesta real del endpoint
+      setVerification({
+        id: id,
+        emailId: id,
+        subject: "NFT Data",
+        recipientEmail: "nft@example.com",
+        senderAddress: address || "",
+        openedAt: new Date().toISOString(),
+        txHash: undefined,
+        blockNumber: undefined,
+        verified: true,
+        alreadyOpened: false,
+        // Puedes añadir más campos según la data de nftData
+      })
+      setLoading(false)
     }
-
-    if (id) {
-      verifyEmailOpen()
+    if (nftError) {
+      setError("Error fetching NFT data")
+      setLoading(false)
     }
-  }, [id])
+  }, [nftData, nftError, address, id])
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString("en-US", {
