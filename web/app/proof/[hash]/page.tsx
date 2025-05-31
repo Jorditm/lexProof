@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getEmailNfts } from "@/lib/alchemy";
+// import { getEmailNfts } from "@/lib/alchemy";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 
@@ -54,28 +54,32 @@ export default function ProofPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const account = useAccount();
-    const { data: proof } = useQuery({
-    queryKey: ["emailNfts"],
-    queryFn: async () => { 
-      const data = await getEmailNfts(account.address as `0x${string})`)
-      const foundEmail = data?.ownedNfts.find(
-        (email: any) => email.txHash === hash
-      );
-      if (foundEmail) {
-        // Create proof from saved email
+  const { data: proof } = useQuery({
+    queryKey: ["emailProof", hash, account.address],
+    queryFn: async () => {
+      // Simulate fetching proof by hash (replace with real API in production)
+      // Example: const data = await getEmailProofByHash(hash)
+      // For now, return mock data if hash matches a demo value
+      if (!hash) return null;
+
+      // Demo/mock proof for illustration
+      if (hash === "demo1234") {
         const emailProof: EmailProof = {
-          id: foundEmail.id,
-          senderAddress: foundEmail.from,
-          recipientEmail: maskEmail(foundEmail.to),
-          contentHash: generateContentHash(foundEmail.message),
-          subject: foundEmail.subject,
-          dateSent: foundEmail?.mint.timestamp,
-          txHash: foundEmail.mint.transactionHash,
-          blockNumber: Math.floor(Math.random() * 1000000) + 18000000,
+          id: "1",
+          senderAddress: "0x1234567890abcdef1234567890abcdef12345678",
+          recipientEmail: maskEmail("recipient@example.com"),
+          contentHash: generateContentHash("Hello world!"),
+          subject: "Demo Email Subject",
+          dateSent: new Date().toISOString(),
+          txHash:
+            "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
+          blockNumber: 18012345,
           verified: true,
         };
         return emailProof;
       }
+
+      return null;
     },
   });
 
@@ -90,9 +94,8 @@ export default function ProofPage() {
 
   //       // In a real implementation, this would fetch from your backend/blockchain
   //       // For demo purposes, we'll check localStorage and generate mock data
-  
 
-  //       } 
+  //       }
   //     } catch (err) {
   //       setError("Failed to fetch email proof");
   //     } finally {
