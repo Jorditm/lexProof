@@ -15,6 +15,7 @@ function extractMessageId(fullMessageId: string): string {
 }
 
 export async function POST(request: Request) {
+
   const latestUnprocessed = await db.execute({
     sql: `SELECT sender FROM emails WHERE processed = 0 ORDER BY date DESC LIMIT 1`,
   });

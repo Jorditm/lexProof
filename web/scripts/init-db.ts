@@ -11,7 +11,8 @@ async function init() {
           recipient TEXT NOT NULL,
           content TEXT NOT NULL,
           txhash TEXT,
-          processed BOOLEAN DEFAULT FALSE
+          processed BOOLEAN DEFAULT FALSE,
+          uniqueHash TEXT UNIQUE
         )
       `);
         console.log("✅ Table created:", result);
