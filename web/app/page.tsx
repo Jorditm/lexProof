@@ -113,7 +113,7 @@ export default function Home() {
               <div className="flex justify-center">
                 <TransactionHistory
                   address={walletAddress}
-                  chainId={1}
+                  chainId={11155111}
                   title="Wallet Transaction History"
                   description="View all transactions associated with your connected wallet address. This includes email verification transactions and other blockchain activity."
                 />

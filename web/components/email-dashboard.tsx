@@ -19,7 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Mail, ExternalLink, Copy, Trash2, Eye, Shield } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Email {
   id: string;
@@ -44,7 +44,6 @@ export function EmailDashboard() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Load emails from localStorage
@@ -81,10 +80,10 @@ export function EmailDashboard() {
           status === "verified"
             ? "bg-green-100 text-green-800 hover:bg-green-100"
             : status === "opened"
-            ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-            : status === "delivered"
-            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-            : ""
+              ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+              : status === "delivered"
+                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                : ""
         }
       >
         {config.label}
@@ -94,10 +93,7 @@ export function EmailDashboard() {
 
   const copyTxHash = (txHash: string) => {
     navigator.clipboard.writeText(txHash);
-    toast({
-      title: "Transaction hash copied",
-      description: "Transaction hash copied to clipboard",
-    });
+    toast("Transaction hash copied");
   };
 
   const deleteEmail = (id: string) => {
@@ -105,10 +101,7 @@ export function EmailDashboard() {
     setEmails(updatedEmails);
     localStorage.setItem("sentEmails", JSON.stringify(updatedEmails));
 
-    toast({
-      title: "Email deleted",
-      description: "Email removed from dashboard",
-    });
+    toast("Email deleted");
   };
 
   const previewEmail = (email: Email) => {

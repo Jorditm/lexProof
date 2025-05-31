@@ -11,10 +11,7 @@ const nylas = new Nylas({
 
 export async function POST(req: NextRequest) {
   console.info("Received POST request to /api/email/send");
-
   const emailData = await req.json();
-  console.info("Parsed emailData:", emailData);
-  console.info("nylas:", nylas);
 
   const {
     to,
@@ -54,7 +51,7 @@ export async function POST(req: NextRequest) {
         body: html,
         to: [
           {
-            name: "Lexxproof",
+            name: "Lexproof",
             email: to,
           },
         ],
