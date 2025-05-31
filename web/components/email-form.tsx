@@ -28,10 +28,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TipTapLink from "@tiptap/extension-link";
 import { useSignMessage } from "wagmi";
-import {
-  type SignMessageData,
-  signMessageMutationOptions,
-} from 'wagmi/query'
 
 interface EmailFormProps {
   walletAddress: string;
@@ -42,7 +38,7 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
   const [subject, setSubject] = useState("");
   const [isSending, setIsSending] = useState(false);
   // const { openTxToast } = useNotification();
-  const { signMessage } = useSignMessage();
+  const { signMessageAsync } = useSignMessage();
 
   const { toast } = useToast();
 
@@ -76,24 +72,18 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
     }
 
     setIsSending(true);
-    signMessage({ message: "Confirna tu identidad" });
 
-    
     try {
-      // Mock email sending with blockchain proof
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // Get the HTML content from the editor
       const messageContent = editor?.getHTML() || "";
-
       const emailId = Date.now().toString();
       const verificationLink = generateVerificationLink(emailId);
 
-      // In a real implementation, this would:
-      // 1. Send email via traditional email service with embedded verification link
-      // 2. Store proof hash on blockchain
-      // 3. Create delivery tracking record
+      // 1. Firma el mensaje antes de cualquier envío
+      const signature = await signMessageAsync({
+        message: `Sign this message to confirm email: ${emailId}`,
+      });
 
+      // 2. Si la firma fue exitosa, construye el payload
       const emailData = {
         id: emailId,
         to: email,
@@ -104,30 +94,23 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
         status: "sent",
         txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
         verificationLink,
+        signature,
       };
 
-      // await fetch("/api/emails", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(emailData),
-      // });
+      // 3. Envío al endpoint
+      const response = await fetch("/api/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(emailData),
+      });
 
-      // Store in localStorage for demo purposes
-      const existingEmails = JSON.parse(
-        localStorage.getItem("sentEmails") || "[]"
-      );
-      existingEmails.push(emailData);
-      localStorage.setItem("sentEmails", JSON.stringify(existingEmails));
+      if (!response.ok) throw new Error("API error");
 
-      // openTxToast("1", `0x${Math.random().toString(16).substr(2, 64)}`);
       toast({
         title: "Email sent successfully",
         description: "Email sent with verification tracking enabled",
       });
 
-      // Show verification link for demo purposes
       toast({
         title: "Demo: Verification Link Generated",
         description: `Click to simulate email open: ${verificationLink}`,
@@ -141,7 +124,8 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
     } catch (error) {
       toast({
         title: "Failed to send email",
-        description: "An error occurred while sending the email",
+        description:
+          "An error occurred while signing or sending. Make sure you accepted the signature request.",
         variant: "destructive",
       });
     } finally {
