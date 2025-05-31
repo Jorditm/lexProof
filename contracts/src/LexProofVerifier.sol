@@ -15,7 +15,7 @@ contract LexProofVerifier is Verifier, ERC721 {
     mapping(bytes32 => bool) public takenEmailHashes;
     mapping(uint256 => string) public tokenIdToMetadataUri;
 
-    constructor(address _prover) ERC721("EmailNFT", "EML") {
+    constructor(address _prover) ERC721("LexProofNFT", "LEXP") {
         prover = _prover;
     }
 
