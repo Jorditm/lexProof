@@ -14,12 +14,13 @@ contract LexProofVerifier is Verifier, ERC721 {
 
     mapping(bytes32 => bool) public takenEmailHashes;
     mapping(uint256 => string) public tokenIdToMetadataUri;
+    mapping(uint256 => string) public tokenIdToEmailContent;
 
     constructor(address _prover) ERC721("LexProofNFT", "LEXP") {
         prover = _prover;
     }
 
-    function verify(Proof calldata, bytes32 _emailHash, string memory _emailFromDomain, address _sender)
+    function verify(Proof calldata, bytes32 _emailHash, string memory _emailFromDomain, address _sender, string memory _emailContent)
         public
         onlyVerified(prover, LexProofProver.main.selector)
     {
@@ -28,6 +29,7 @@ contract LexProofVerifier is Verifier, ERC721 {
         uint256 tokenId = currentTokenId + 1;
         
         tokenIdToMetadataUri[tokenId] = string.concat("https://faucet.vlayer.xyz/api/xBadgeMeta?handle=", _emailFromDomain);
+        tokenIdToEmailContent[tokenId] = _emailContent;
         currentTokenId = tokenId;
 
         _safeMint(_sender, tokenId);
@@ -35,5 +37,9 @@ contract LexProofVerifier is Verifier, ERC721 {
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         return tokenIdToMetadataUri[tokenId];
+    }
+
+    function getEmailContent(uint256 tokenId) public view returns (string memory) {
+        return tokenIdToEmailContent[tokenId];
     }
 }
