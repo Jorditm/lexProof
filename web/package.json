@@ -43,6 +43,7 @@
     "@tiptap/extension-underline": "^2.12.0",
     "@tiptap/react": "^2.12.0",
     "@tiptap/starter-kit": "^2.12.0",
+    "@vlayer/sdk": "^1.0.2-nightly-20250530-3f01bfdcfb6b20d608f7bcef25f9907164ad3966",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
