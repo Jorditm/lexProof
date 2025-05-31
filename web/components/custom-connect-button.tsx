@@ -8,7 +8,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { ChevronDown, CopyIcon, LogOut, Wallet } from "lucide-react";
 import { useDisconnect } from "wagmi";
@@ -18,8 +17,31 @@ export function CustomConnectButton() {
   const { disconnect } = useDisconnect();
 
   const copyAddress = (address: string) => {
-    navigator.clipboard.writeText(address);
-    toast("Wallet address copied to clipboard");
+    if (
+      typeof window !== "undefined" &&
+      navigator?.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      navigator.clipboard.writeText(address);
+      toast("Wallet address copied to clipboard");
+    } else {
+      // Fallback
+      const textarea = document.createElement("textarea");
+      textarea.value = address;
+      textarea.style.position = "fixed"; // evita scroll
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+
+      try {
+        const successful = document.execCommand("copy");
+        toast(successful ? "Wallet address copied" : "Copy failed");
+      } catch (err) {
+        toast("Copy not supported");
+      }
+
+      document.body.removeChild(textarea);
+    }
   };
 
   return (
@@ -85,11 +107,6 @@ export function CustomConnectButton() {
                   <CopyIcon className="w-4 h-4" />
                 </button>
               </DropdownMenuItem>
-              {/* <DropdownMenuSeparator /> */}
-              {/* <DropdownMenuItem onSelect={openChainModal}>
-                {chain.name}
-              </DropdownMenuItem> */}
-              {/* <DropdownMenuSeparator /> */}
               <DropdownMenuItem
                 onSelect={() => disconnect()}
                 className="text-red-600 focus:text-red-700 flex items-center justify-between"
@@ -103,67 +120,4 @@ export function CustomConnectButton() {
       }}
     </ConnectButton.Custom>
   );
-  //   return (
-  //     <ConnectButton.Custom>
-  //       {({
-  //         account,
-  //         chain,
-  //         openAccountModal,
-  //         openChainModal,
-  //         openConnectModal,
-  //         authenticationStatus,
-  //         mounted,
-  //       }) => {
-  //         const ready = mounted && authenticationStatus !== "loading";
-  //         const connected =
-  //           ready &&
-  //           account &&
-  //           chain &&
-  //           (!authenticationStatus || authenticationStatus === "authenticated");
-
-  //         if (!ready) return null;
-
-  //         if (!connected) {
-  //           return (
-  //             <Button onClick={openConnectModal} size="sm" className="gap-2">
-  //               Connect Wallet
-  //             </Button>
-  //           );
-  //         }
-
-  //         if (chain.unsupported) {
-  //           return (
-  //             <Button onClick={openChainModal} variant="destructive" size="sm">
-  //               Wrong Network
-  //             </Button>
-  //           );
-  //         }
-
-  //         return (
-  //           <DropdownMenu>
-  //             <DropdownMenuTrigger asChild>
-  //               <Button variant="outline" size="sm" className="gap-2 px-4">
-  //                 <span className="text-sm font-mono">{account.displayName}</span>
-  //                 <ChevronDown className="h-4 w-4" />
-  //               </Button>
-  //             </DropdownMenuTrigger>
-  //             <DropdownMenuContent align="end">
-  //               <DropdownMenuItem onSelect={openAccountModal}>
-  //                 Wallet: {account.displayName}
-  //               </DropdownMenuItem>
-  //               {account.displayBalance && (
-  //                 <DropdownMenuItem disabled>
-  //                   Balance: {account.displayBalance}
-  //                 </DropdownMenuItem>
-  //               )}
-  //               <DropdownMenuSeparator />
-  //               <DropdownMenuItem onSelect={openChainModal}>
-  //                 Network: {chain.name}
-  //               </DropdownMenuItem>
-  //             </DropdownMenuContent>
-  //           </DropdownMenu>
-  //         );
-  //       }}
-  //     </ConnectButton.Custom>
-  //   );
 }
