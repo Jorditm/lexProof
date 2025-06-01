@@ -99,22 +99,24 @@ export function EmailForm({ walletAddress }: EmailFormProps) {
           const messageContent = editor?.getHTML() || "";
           const emailId = Date.now().toString();
           const verificationLink = generateVerificationLink(emailId);
-          toast.success("Message signed successfully");
+
+          // Step 1: Sign the message
+          const messageToSign = `Sign this message to verify your email content:\n\nSubject: ${subject}\nContent: ${messageContent}`;
+          const signature = await signMessageAsync({ message: messageToSign });
 
           // Paso 2: construir payload
-      const emailData = {
-        id: emailId,
-        to: "lexproof@jordiplanas.cat",
-        cc: email,
-        subject,
-        message: messageContent,
-        from: walletAddress,
-        timestamp: new Date().toISOString(),
-        status: "sent",
-        txHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-        verificationLink,
-        signature,
-      };
+          const emailData = {
+            id: emailId,
+            to: "lexproof@jordiplanas.cat",
+            cc: email,
+            subject,
+            message: messageContent,
+            from: walletAddress,
+            timestamp: new Date().toISOString(),
+            status: "sent",
+            txHash: signature,
+            verificationLink,
+          };
 
           // Paso 3: enviar email
           const response = await fetch("/api/email/send", {
