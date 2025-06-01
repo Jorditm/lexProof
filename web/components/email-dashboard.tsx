@@ -58,49 +58,32 @@ export function EmailDashboard() {
     queryKey: ["combinedEmails", address],
     queryFn: async () => {
       if (!address) return [];
-      // Llama a ambos endpoints en paralelo
-      const [nftsRes, emailsRes] = await Promise.all([
-        fetch(
-          `https://eth-sepolia.blockscout.com/api/v2/addresses/${address}/nft?type=ERC-721`
-        ),
-        fetch("/api/content/get-emails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sender: `${address}`,
-          }),
-        }),
-      ]);
-      if (!nftsRes.ok) throw new Error("Failed to fetch NFTs");
-      if (!emailsRes.ok) throw new Error("Failed to fetch emails from API");
-      const nftsData = await nftsRes.json();
-      const emailsData = await emailsRes.json();
-      const filteredNfts = Array.isArray(nftsData.items)
-        ? nftsData.items.filter(
-            (nft: any) =>
-              nft.token?.address?.toLowerCase() ===
-              "0x430ec731a6e53a7e015e9b1d01a5cea7232b19ae"
-          )
-        : [];
 
-      // Mapea los datos de emailsData a un formato unificado
-      return emailsData.map((email: any) => {
-        const nft = filteredNfts.find((nft: any) => nft.id === email.id);
-        return {
-          id: email.id,
-          to: email.recipient,
-          subject: email.subject,
-          message: email.content,
-          from: email.sender,
-          timestamp: nft?.mint?.timestamp || new Date().toISOString(),
-          status: nft?.status || "sent",
-          txHash: nft?.mint?.transaction_hash || "",
-        } as Email;
+      const response = await fetch("/api/content/get-emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: address,
+        }),
       });
+
+      if (!response.ok) throw new Error("Failed to fetch emails from API");
+      const emailsData = await response.json();
+
+      return emailsData.map((email: any) => ({
+        id: email.id,
+        to: email.recipient,
+        subject: email.subject,
+        message: email.content,
+        from: email.sender,
+        timestamp: email.timestamp || new Date().toISOString(),
+        status: email.status || "sent",
+        txHash: email.txHash || "",
+      } as Email));
     },
 
     enabled: Boolean(address),
-    staleTime: 0,
+    staleTime: 0
   });
 
   const userContract = {
@@ -116,30 +99,24 @@ export function EmailDashboard() {
       },
     ],
   });
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      sent: { variant: "secondary" as const, label: "Sent" },
-      delivered: { variant: "default" as const, label: "Delivered" },
-      opened: { variant: "default" as const, label: "Opened" },
-      verified: { variant: "default" as const, label: "Verified" },
-    };
-
-    const config = variants[status as keyof typeof variants] || variants.sent;
+  const getStatusBadge = (status: string, txHash?: string) => {
+    if (!txHash) {
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-orange-100 text-orange-800 hover:bg-orange-100"
+        >
+          Pending NFT
+        </Badge>
+      );
+    }
 
     return (
       <Badge
-        variant={config.variant}
-        className={
-          status === "verified"
-            ? "bg-green-100 text-green-800 hover:bg-green-100"
-            : status === "opened"
-              ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-              : status === "delivered"
-                ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
-                : ""
-        }
+        variant="default"
+        className="bg-green-100 text-green-800 hover:bg-green-100"
       >
-        {config.label}
+        Sent
       </Badge>
     );
   };
@@ -152,10 +129,6 @@ export function EmailDashboard() {
   const previewEmail = (email: Email) => {
     setSelectedEmail(email);
     setPreviewOpen(true);
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
   };
 
   const truncateText = (text: string, maxLength: number) => {
@@ -240,20 +213,20 @@ export function EmailDashboard() {
                         <TableCell>
                           {truncateText(email?.subject, 30)}
                         </TableCell>
-                        <TableCell>{getStatusBadge(email?.status)}</TableCell>
+                        <TableCell>{getStatusBadge(email?.status, email?.txHash)}</TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {formatDate(email.mint?.timestamp)}
+                          {email.timestamp}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs">
-                              {email?.mint?.transactionHash?.slice(0, 8)}...
+                              {email?.txHash?.slice(0, 8)}...
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                copyTxHash(email?.mint?.transactionHash)
+                                copyTxHash(email?.txHash)
                               }
                               className="h-6 w-6 p-0"
                             >
@@ -264,7 +237,7 @@ export function EmailDashboard() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Link
-                              href={`/proof/${email?.mint?.transactionHash}`}
+                              href={`/proof/${email?.txHash}`}
                             >
                               <Button
                                 variant="ghost"
@@ -278,7 +251,7 @@ export function EmailDashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => previewEmail(email.recipient)}
+                              onClick={() => previewEmail(email)}
                               className="h-6 w-6 p-0"
                               title="Preview Email"
                             >
@@ -289,7 +262,7 @@ export function EmailDashboard() {
                               size="sm"
                               onClick={() =>
                                 window.open(
-                                  `https://etherscan.io/tx/${email.mint?.transactionHash}`,
+                                  `https://etherscan.io/tx/${email?.txHash}`,
                                   "_blank"
                                 )
                               }
@@ -315,8 +288,7 @@ export function EmailDashboard() {
             <DialogHeader>
               <DialogTitle>{selectedEmail.subject}</DialogTitle>
               <DialogDescription>
-                Sent to {selectedEmail.to} on{" "}
-                {formatDate(selectedEmail.timestamp)}
+                Sent to {selectedEmail.to} on {selectedEmail.timestamp}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -325,7 +297,7 @@ export function EmailDashboard() {
                   From: {selectedEmail.from.slice(0, 6)}...
                   {selectedEmail.from.slice(-4)}
                 </div>
-                <div>{getStatusBadge(selectedEmail.status)}</div>
+                <div>{getStatusBadge(selectedEmail.status, selectedEmail.txHash)}</div>
               </div>
               <div className="border-t pt-4">
                 <div
