@@ -51,57 +51,47 @@ interface EmailProof {
 export default function ProofPage() {
   const params = useParams();
   const hash = params.hash as string;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const account = useAccount();
-  const { data: proof } = useQuery({
-    queryKey: ["emailProof", hash, account.address],
-    queryFn: async () => {
-      // Simulate fetching proof by hash (replace with real API in production)
-      // Example: const data = await getEmailProofByHash(hash)
-      // For now, return mock data if hash matches a demo value
-      if (!hash) return null;
-
-      // Demo/mock proof for illustration
-      if (hash === "demo1234") {
-        const emailProof: EmailProof = {
-          id: "1",
-          senderAddress: "0x1234567890abcdef1234567890abcdef12345678",
-          recipientEmail: maskEmail("recipient@example.com"),
-          contentHash: generateContentHash("Hello world!"),
-          subject: "Demo Email Subject",
-          dateSent: new Date().toISOString(),
-          txHash:
-            "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdef",
-          blockNumber: 18012345,
-          verified: true,
-        };
-        return emailProof;
-      }
-
-      return null;
-    },
-  });
-
-
-  const maskEmail = (email: string) => {
-    const [username, domain] = email.split("@");
-    if (username.length <= 2) return `${username}@${domain}`;
-    return `${username.slice(0, 2)}${"*".repeat(
-      username.length - 2
-    )}@${domain}`;
-  };
 
   const generateContentHash = (content: string) => {
-    // Simple hash generation for demo
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
       const char = content.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
+      hash = hash & hash;
     }
     return Math.abs(hash).toString(16).padStart(32, "0");
   };
+
+  const {
+    data: proof,
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey: ["emailProof", hash],
+    queryFn: async () => {
+      if (!hash) return null;
+      const res = await fetch("/api/content/get-email-by-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: hash }),
+      });
+      if (!res.ok) throw new Error("Failed to fetch email proof");
+      const data = await res.json();
+      if (!data || !data[0]) return null;
+      const email = data[0];
+      return {
+        id: email.id,
+        senderAddress: email.sender,
+        recipientEmail: email.recipient,
+        contentHash: email.content_hash || generateContentHash(email.content),
+        subject: email.subject,
+        dateSent: email.date_sent || new Date().toISOString(),
+        txHash: email.txhash || "",
+        verified: true,
+      };
+    },
+  });
 
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString("en-US", {
@@ -176,7 +166,7 @@ export default function ProofPage() {
               <CardContent className="text-center py-8">
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <p className="text-slate-600 mb-4">
-                  {error ||
+                  {error &&
                     "This proof hash does not exist or the email has not been verified on the blockchain."}
                 </p>
                 <Link href="/">
@@ -302,18 +292,30 @@ export default function ProofPage() {
                 variant="outline"
                 className={`flex items-center gap-2 px-4 py-2 text-sm ${
                   proof.verified
-                    ? "bg-green-50 text-green-700 border-green-200"
+                    ? proof.txHash
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-orange-50 text-orange-700 border-orange-200"
                     : "bg-red-50 text-red-700 border-red-200"
                 }`}
               >
                 {proof.verified ? (
-                  <CheckCircle className="h-4 w-4" />
+                  proof.txHash ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                  )
                 ) : (
                   <AlertCircle className="h-4 w-4" />
                 )}
-                {proof.verified
-                  ? "Verified on Blockchain"
-                  : "Verification Failed"}
+                {proof.verified ? (
+                  proof.txHash ? (
+                    "Verified on Blockchain"
+                  ) : (
+                    "Pending Blockchain verification"
+                  )
+                ) : (
+                  "Verification Failed"
+                )}
               </Badge>
             </div>
 
@@ -354,9 +356,6 @@ export default function ProofPage() {
                       <code className="text-sm bg-slate-100 px-2 py-1 rounded">
                         {proof.recipientEmail}
                       </code>
-                      <p className="text-xs text-slate-500">
-                        Email address is masked for privacy
-                      </p>
                     </div>
                   </div>
 
@@ -412,12 +411,6 @@ export default function ProofPage() {
                       <code className="font-mono text-xs break-all">
                         {proof.txHash}
                       </code>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-600">Block Number:</span>
-                      <span className="font-mono text-xs">
-                        #{proof.blockNumber.toLocaleString()}
-                      </span>
                     </div>
                   </div>
                 </div>

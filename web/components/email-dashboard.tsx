@@ -48,7 +48,7 @@ export function EmailDashboard() {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const {address} = useAccount();
+  const { address } = useAccount();
 
   const {
     data: emails,
@@ -78,12 +78,12 @@ export function EmailDashboard() {
         from: email.sender,
         timestamp: email.timestamp || new Date().toISOString(),
         status: email.status || "sent",
-        txHash: email.txHash || "",
+        txHash: email.txhash || "",
       } as Email));
     },
 
     enabled: Boolean(address),
-    staleTime: 0
+    staleTime: 0,
   });
 
   const userContract = {
@@ -135,6 +135,22 @@ export function EmailDashboard() {
     return text?.length > maxLength
       ? text.substring(0, maxLength) + "..."
       : text;
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return (
+      date.getFullYear() +
+      "-" +
+      pad(date.getMonth() + 1) +
+      "-" +
+      pad(date.getDate()) +
+      " " +
+      pad(date.getHours()) +
+      ":" +
+      pad(date.getMinutes())
+    );
   };
 
   return (
@@ -213,9 +229,11 @@ export function EmailDashboard() {
                         <TableCell>
                           {truncateText(email?.subject, 30)}
                         </TableCell>
-                        <TableCell>{getStatusBadge(email?.status, email?.txHash)}</TableCell>
+                        <TableCell>
+                          {getStatusBadge(email?.status, email?.txHash)}
+                        </TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {email.timestamp}
+                          {formatTimestamp(email.timestamp)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -225,9 +243,7 @@ export function EmailDashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                copyTxHash(email?.txHash)
-                              }
+                              onClick={() => copyTxHash(email?.txHash)}
                               className="h-6 w-6 p-0"
                             >
                               <Copy className="h-3 w-3" />
@@ -236,9 +252,7 @@ export function EmailDashboard() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Link
-                              href={`/proof/${email?.txHash}`}
-                            >
+                            <Link href={`/proof/${email?.id}`}>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -288,7 +302,8 @@ export function EmailDashboard() {
             <DialogHeader>
               <DialogTitle>{selectedEmail.subject}</DialogTitle>
               <DialogDescription>
-                Sent to {selectedEmail.to} on {selectedEmail.timestamp}
+                Sent to {selectedEmail.to} on{" "}
+                {formatTimestamp(selectedEmail.timestamp)}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -297,7 +312,9 @@ export function EmailDashboard() {
                   From: {selectedEmail.from.slice(0, 6)}...
                   {selectedEmail.from.slice(-4)}
                 </div>
-                <div>{getStatusBadge(selectedEmail.status, selectedEmail.txHash)}</div>
+                <div>
+                  {getStatusBadge(selectedEmail.status, selectedEmail.txHash)}
+                </div>
               </div>
               <div className="border-t pt-4">
                 <div
@@ -307,7 +324,8 @@ export function EmailDashboard() {
               </div>
               <div className="border-t pt-4 flex justify-between items-center text-xs text-slate-500">
                 <div>
-                  Transaction: {selectedEmail.txHash.slice(0, 10)}...
+                  Transaction:{" "}
+                  {selectedEmail.txHash.slice(0, 10)}...
                   {selectedEmail.txHash.slice(-8)}
                 </div>
                 <Button
